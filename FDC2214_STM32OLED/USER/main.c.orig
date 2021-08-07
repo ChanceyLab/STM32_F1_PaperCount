@@ -1,0 +1,70 @@
+#include "sys.h"
+#include "delay.h"
+#include "usart.h"
+#include "timer.h"
+#include "fdc2214.h"
+#include "beep.h"
+#include "key.h"
+#include "led.h"
+#include "McuDataSend.h"
+
+//滤波
+#define N 12
+char code_coe[N] = {1,2,3,4,5,6,7,8,9,10,11,12};
+char code_sum_coe = 1+2+3+4+5+6+7+8+9+10+11+12;
+char count;
+char value_buf[N];
+int  sum=0;
+
+/********************************************************
+两极板接ch0，接一个通道
+********************************************************/
+void Sys_Init(void);
+
+float res2,res3;//当前值
+float temp2,temp3;
+
+int main(void)
+{
+    Sys_Init();
+    while(1)
+    {
+        printf("CH0;%d\r\n",(int) res0);
+        delay_ms(200);
+//		while(USART_GetFlagStatus(USART1,USART_FLAG_TC)==RESET);
+//		delay_ms(5000);
+    }
+}
+
+void Sys_Init(void)
+{
+    delay_init();	    	 //延时函数初始化
+    NVIC_Configuration();//设置NVIC中断分组2:2；2位抢占优先级，2位响应优先级
+    uart_init(115200);	 //串口初始化为115200
+//    BEEP_Init();
+//	key_init();
+//	led_init();
+    while(FDC2214_Init());
+    delay_ms(500);
+    temp2 = Cap_Calculate(2);//读取初始值
+    temp3 = Cap_Calculate(3);//读取初始值
+    TIM5_Ctrl_Init(500-1,7200-1);   //50ms采集一次，500/10
+}
+
+//定时器5中断服务程序
+void TIM5_IRQHandler(void)   //TIM5中断
+{
+    if(TIM5->SR&0X0001)//50ms定时中断
+    {
+        res2 = Cap_Calculate(2);//采集数据
+        res2 *= 2731;
+        res2 -= 160000;
+    }
+    TIM5->SR&=~(1<<0);  //中断标志位清0，等待下一次中断
+}
+
+void maopao()
+{
+	
+}
+
